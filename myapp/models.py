@@ -43,11 +43,9 @@ class Order(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='New')
 
-    """Calculate the total price of the order based on individual product prices."""
     def calculate_total_price(self):
         return sum(product.price for product in self.products.all())
 
-    """Check if the order can be fulfilled based on product availability."""
     def can_be_fulfilled(self):
         return all(product.available for product in self.products.all())
 
