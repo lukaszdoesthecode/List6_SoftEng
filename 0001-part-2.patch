@@ -1,0 +1,234 @@
+From 47191197220107d1fb0a56fb28a3d79535e68c71 Mon Sep 17 00:00:00 2001
+From: Lukasz Stecyk <stecyk.lukasz@gmail.com>
+Date: Wed, 4 Dec 2024 02:04:50 +0100
+Subject: [PATCH] part 2
+
+---
+ list5_SE/urls.py     |  34 +++++----------
+ myapp/models.py      |   2 -
+ myapp/serializers.py |  14 +++++-
+ myapp/urls.py        |  14 ++++--
+ myapp/views.py       | 102 +++++--------------------------------------
+ 5 files changed, 45 insertions(+), 121 deletions(-)
+
+diff --git a/list5_SE/urls.py b/list5_SE/urls.py
+index 1ae47bc..080c599 100644
+--- a/list5_SE/urls.py
++++ b/list5_SE/urls.py
+@@ -1,28 +1,14 @@
+-"""
+-URL configuration for list7_se project.
++from django.urls import path, include
++from rest_framework.routers import DefaultRouter
++from myapp.views import ProductViewSet, CustomerViewSet, OrderViewSet
+ 
+-The `urlpatterns` list routes URLs to views. For more information please see:
+-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
+-Examples:
+-Function views
+-    1. Add an import:  from my_app import views
+-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+-Class-based views
+-    1. Add an import:  from other_app.views import Home
+-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+-Including another URLconf
+-    1. Import the include() function: from django.urls import include, path
+-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+-"""
+-# from django.contrib import admin
+-from django.urls import path
+-
+-from django.contrib import admin
+-
+-from myapp.views import product_detail, product_list
++router = DefaultRouter()
++router.register(r'products', ProductViewSet, basename='product')
++router.register(r'customers', CustomerViewSet, basename='customer')
++router.register(r'orders', OrderViewSet, basename='order')
+ 
++# Define the URL patterns
+ urlpatterns = [
+-        path('admin/', admin.site.urls),
+-        path('api/products/', product_list,name='product_list'),
+-        path('api/products/<int:product_id>/', product_detail,name='product_detail'),
++    path('api/', include(router.urls)),
+ ]
++
+diff --git a/myapp/models.py b/myapp/models.py
+index b7a43be..5548aef 100644
+--- a/myapp/models.py
++++ b/myapp/models.py
+@@ -43,11 +43,9 @@ class Order(models.Model):
+     date = models.DateTimeField(auto_now_add=True)
+     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='New')
+ 
+-    """Calculate the total price of the order based on individual product prices."""
+     def calculate_total_price(self):
+         return sum(product.price for product in self.products.all())
+ 
+-    """Check if the order can be fulfilled based on product availability."""
+     def can_be_fulfilled(self):
+         return all(product.available for product in self.products.all())
+ 
+diff --git a/myapp/serializers.py b/myapp/serializers.py
+index c4c09f1..bf543ae 100644
+--- a/myapp/serializers.py
++++ b/myapp/serializers.py
+@@ -1,7 +1,17 @@
+ from rest_framework import serializers
+-from .models import Product
++from .models import Product, Customer, Order  # Import related models
+ 
+ class ProductSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = Product
+-        fields = '__all__'
+\ No newline at end of file
++        fields = '__all__'
++
++class CustomerSerializer(serializers.ModelSerializer):
++    class Meta:
++        model = Customer
++        fields = '__all__'
++
++class OrderSerializer(serializers.ModelSerializer):
++    class Meta:
++        model = Order
++        fields = '__all__'
+diff --git a/myapp/urls.py b/myapp/urls.py
+index f0e1b16..7b71692 100644
+--- a/myapp/urls.py
++++ b/myapp/urls.py
+@@ -1,4 +1,12 @@
+-from django.urls import path
+-from .views import product_list, product_detail
++from django.urls import path, include
++from rest_framework.routers import DefaultRouter
++from myapp.views import ProductViewSet
+ 
+-urlpatterns = [path('api/products/', product_list,name='product_list'),path('api/products/<int:product_id>/', product_detail,name='product_detail'),]
+\ No newline at end of file
++
++router = DefaultRouter()
++router.register(r'products', ProductViewSet, basename='product')
++
++# Define the URL patterns
++urlpatterns = [
++    path('api/', include(router.urls)),
++]
+diff --git a/myapp/views.py b/myapp/views.py
+index 5ec64f4..20cefc1 100644
+--- a/myapp/views.py
++++ b/myapp/views.py
+@@ -1,96 +1,18 @@
+-from django.http.response import Http404
+-from django.shortcuts import get_object_or_404
+-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseNotFound
+-from django.views.decorators.csrf import csrf_exempt
+-from .models import Product
+-from decimal import Decimal
+-import json
++from rest_framework import viewsets
++from .models import Product, Customer, Order
++from .serializers import ProductSerializer, CustomerSerializer, OrderSerializer
+ 
+ 
+-@csrf_exempt
+-def product_list(request):
+-    if request.method == 'GET':
+-        products = list(Product.objects.values('id', 'name', 'price', 'available'))
+-        return JsonResponse(products, safe=False)
++class ProductViewSet(viewsets.ModelViewSet):
++    queryset = Product.objects.all()
++    serializer_class = ProductSerializer
+ 
+-    elif request.method == 'POST':
+-        try:
+-            data = json.loads(request.body)
+-            name = data.get('name')
+-            price = data.get('price')
+ 
+-            if not name or price is None or price == "":
+-                return HttpResponseBadRequest("Missing 'name' or 'price' in the request body.")
++class CustomerViewSet(viewsets.ModelViewSet):
++    queryset = Customer.objects.all()
++    serializer_class = CustomerSerializer
+ 
+-            if Decimal(price) < 0:
+-                return HttpResponseBadRequest("Price cannot be negative.")
+ 
+-            available = data.get('available', True)
+-            product = Product(name=name, price=Decimal(price), available=available)
+-            product.full_clean()
+-            product.save()
+-
+-            return JsonResponse(
+-                {'id': product.id, 'name': product.name, 'price': float(product.price), 'available': product.available},
+-                status=201
+-            )
+-
+-        except ValueError:
+-            return HttpResponseBadRequest("Invalid request body format.")
+-
+-    else:
+-        return HttpResponseNotFound("HTTP method not allowed on this endpoint.")
+-
+-
+-@csrf_exempt
+-def product_detail(request, product_id):
+-    if request.method == 'GET':
+-        try:
+-            product = get_object_or_404(Product, id=product_id)
+-            return JsonResponse({
+-                'id': product.id,
+-                'name': product.name,
+-                'price': float(product.price),
+-                'available': product.available
+-            })
+-        except Http404:
+-            return HttpResponseNotFound(f"Product with ID {product_id} does not exist.")
+-
+-    elif request.method == 'PATCH':
+-        try:
+-            product = get_object_or_404(Product, id=product_id)
+-            data = json.loads(request.body or '{}')
+-
+-            if 'name' in data:
+-                product.name = data['name']
+-            if 'price' in data:
+-                try:
+-                    price = Decimal(data['price'])
+-                    if price < 0:
+-                        return HttpResponseBadRequest("Price cannot be negative.")
+-                    product.price = price
+-                except (ValueError, TypeError):
+-                    return HttpResponseBadRequest("Invalid price value.")
+-            if 'available' in data:
+-                product.available = data['available']
+-
+-            product.full_clean()
+-            product.save()
+-
+-            return JsonResponse({
+-                'id': product.id,
+-                'name': product.name,
+-                'price': float(product.price),
+-                'available': product.available
+-            })
+-
+-        except Http404:
+-            return HttpResponseNotFound(f"Product with ID {product_id} does not exist.")
+-        except json.JSONDecodeError:
+-            return HttpResponseBadRequest("Invalid JSON format in request body.")
+-
+-    elif request.method == 'POST':
+-        return HttpResponseBadRequest("POST is not allowed for a specific product ID.")
+-
+-    else:
+-        return HttpResponseNotFound("HTTP method not allowed on this endpoint.")
++class OrderViewSet(viewsets.ModelViewSet):
++    queryset = Order.objects.all()
++    serializer_class = OrderSerializer
+-- 
+2.39.5 (Apple Git-154)
+
