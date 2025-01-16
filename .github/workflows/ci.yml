@@ -40,8 +40,8 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git add docs.json # Modify the paths if necessary
-          git commit -m "Updated documentation"
-          git push origin main
+          git add docs.json
+          git diff --quiet docs.json || git commit -m "Updated documentation"
+          git push origin main || echo "No changes to push"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
