@@ -30,7 +30,11 @@ jobs:
         run: |
           source venv/bin/activate
           python manage.py generateschema > docs.json
-          # Modify the paths if necessary
+
+      - name: Verify docs.json
+        run: |
+          ls -l
+          cat docs.json
 
       - name: Commit and push documentation
         run: |
