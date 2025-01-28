@@ -16,7 +16,7 @@ jobs:
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: testdb
         ports:
-          - 5432:5432
+          - 5433:5432
 
     steps:
       - name: Check out code
