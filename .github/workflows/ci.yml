@@ -6,10 +6,39 @@ on:
       - main
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:17
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Build and start Containers
+        run: docker-compose up --build -d
+
+      - name: Execute unit tests
+        run: docker exec $(docker-compose ps -q api) python list5_SE/manage.py test list5_SE/myapp/tests
+
   docs:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -17,7 +46,7 @@ jobs:
       - name: Set up environment
         uses: actions/setup-python@v2
         with:
-          python-version: 3.12 # Change to your Python version
+          python-version: 3.12
 
       - name: Install dependencies
         run: |
