@@ -16,7 +16,7 @@ jobs:
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: testdb
         ports:
-          - "5433:5432"
+          - "5435:5432"
 
     steps:
       - name: Check out code
@@ -31,7 +31,7 @@ jobs:
         run: docker-compose up --build -d
 
       - name: Execute unit tests
-        run: docker exec $(docker-compose ps -q api) python manage.py test myapp/tests
+        run: docker exec $(docker-compose ps -q api) python manage.py test myapp/tests --parallel=1
 
   docs:
     needs: test
