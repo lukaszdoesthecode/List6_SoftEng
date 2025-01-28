@@ -33,6 +33,15 @@ jobs:
       - name: Execute unit tests
         run: docker exec $(docker-compose ps -q api) python manage.py test myapp/tests --parallel=1
 
+      - name: Show container logs if tests fail
+        if: failure()
+        run: |
+          echo "===== API Container Logs ====="
+          docker-compose logs api
+          echo ""
+          echo "===== DB Container Logs ====="
+          docker-compose logs db
+
   docs:
     needs: test
     runs-on: ubuntu-latest
