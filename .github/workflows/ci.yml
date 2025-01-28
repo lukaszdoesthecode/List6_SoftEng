@@ -1,5 +1,4 @@
 name: software-engineering-lab-9
-#fix
 on:
   push:
     branches:
@@ -8,15 +7,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      db:
-        image: postgres:17
-        env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_DB: testdb
-        ports:
-          - "5433:5432"
+    # services:
+    #   db:
+    #     image: postgres:17
+    #     env:
+    #       POSTGRES_USER: testuser
+    #       POSTGRES_PASSWORD: testpassword
+    #       POSTGRES_DB: testdb
+    #     ports:
+    #       - "5433:5432"
 
     steps:
       - name: Check out code
