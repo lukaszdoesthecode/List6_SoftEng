@@ -31,7 +31,7 @@ jobs:
         run: docker-compose up --build -d
 
       - name: Execute unit tests
-        run: docker exec $(docker-compose ps -q api) python /app/manage.py test myapp.tests
+        run: docker exec $(docker-compose ps -q api) python List6_SoftEng/manage.py test List6_SoftEng/myapp/tests
 
   docs:
     needs: test
